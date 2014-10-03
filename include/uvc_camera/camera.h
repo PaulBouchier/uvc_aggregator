@@ -24,8 +24,7 @@ class Camera {
 
     int width, height, fps, skip_frames, frames_to_skip;
 	int num_cameras;
-    std::string device;
-	std::string frame, format;
+    std::string device, frame, format;
     bool rotate;
 
     camera_info_manager::CameraInfoManager info_mgr;

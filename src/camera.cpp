@@ -78,59 +78,60 @@ Camera::Camera(ros::NodeHandle _comm_nh, ros::NodeHandle _param_nh) :
         ROS_INFO_STREAM("Initializing camera: " << device);
         cam = camera_array[i] = new uvc_cam::Cam(device.c_str(), mode, width, height, fps);
         cam->set_motion_thresholds(100, -1);
+      }
 
-        bool auto_focus;
-        if (pnode.getParam("auto_focus", auto_focus)) {
-          cam->set_v4l2_control(V4L2_CID_FOCUS_AUTO, auto_focus, "auto_focus");
-        }
+      bool auto_focus;
+      if (pnode.getParam("auto_focus", auto_focus)) {
+        cam->set_v4l2_control(V4L2_CID_FOCUS_AUTO, auto_focus, "auto_focus");
+      }
 
-        int focus_absolute;
-        if (pnode.getParam("focus_absolute", focus_absolute)) {
-          cam->set_v4l2_control(V4L2_CID_FOCUS_ABSOLUTE, focus_absolute, "focus_absolute");
-        }
+      int focus_absolute;
+      if (pnode.getParam("focus_absolute", focus_absolute)) {
+        cam->set_v4l2_control(V4L2_CID_FOCUS_ABSOLUTE, focus_absolute, "focus_absolute");
+      }
 
-        bool auto_exposure;
-        if (pnode.getParam("auto_exposure", auto_exposure)) {
-          int val;
-          if (auto_exposure) {
-            val = V4L2_EXPOSURE_AUTO;
-          } else {
-            val = V4L2_EXPOSURE_MANUAL;
-          }
-          cam->set_v4l2_control(V4L2_CID_EXPOSURE_AUTO, val, "auto_exposure");
+      bool auto_exposure;
+      if (pnode.getParam("auto_exposure", auto_exposure)) {
+        int val;
+        if (auto_exposure) {
+          val = V4L2_EXPOSURE_AUTO;
+        } else {
+          val = V4L2_EXPOSURE_MANUAL;
         }
+        cam->set_v4l2_control(V4L2_CID_EXPOSURE_AUTO, val, "auto_exposure");
+      }
 
-        int exposure_absolute;
-        if (pnode.getParam("exposure_absolute", exposure_absolute)) {
-          cam->set_v4l2_control(V4L2_CID_EXPOSURE_ABSOLUTE, exposure_absolute, "exposure_absolute");
-        }
+      int exposure_absolute;
+      if (pnode.getParam("exposure_absolute", exposure_absolute)) {
+        cam->set_v4l2_control(V4L2_CID_EXPOSURE_ABSOLUTE, exposure_absolute, "exposure_absolute");
+      }
 
-        int brightness;
-        if (pnode.getParam("brightness", brightness)) {
-          cam->set_v4l2_control(V4L2_CID_BRIGHTNESS, brightness, "brightness");
-        }
+      int brightness;
+      if (pnode.getParam("brightness", brightness)) {
+        cam->set_v4l2_control(V4L2_CID_BRIGHTNESS, brightness, "brightness");
+      }
 
-        int power_line_frequency;
-        if (pnode.getParam("power_line_frequency", power_line_frequency)) {
-          int val;
-          if (power_line_frequency == 0) {
-            val = V4L2_CID_POWER_LINE_FREQUENCY_DISABLED;
-          } else if (power_line_frequency == 50) {
-            val = V4L2_CID_POWER_LINE_FREQUENCY_50HZ;
-          } else if (power_line_frequency == 60) {
-            val = V4L2_CID_POWER_LINE_FREQUENCY_60HZ;
-          } else {
-            printf("power_line_frequency=%d not supported. Using auto.\n", power_line_frequency);
-            val = V4L2_CID_POWER_LINE_FREQUENCY_AUTO;
-          }
-          cam->set_v4l2_control(V4L2_CID_POWER_LINE_FREQUENCY, val, "power_line_frequency");
+      int power_line_frequency;
+      if (pnode.getParam("power_line_frequency", power_line_frequency)) {
+        int val;
+        if (power_line_frequency == 0) {
+          val = V4L2_CID_POWER_LINE_FREQUENCY_DISABLED;
+        } else if (power_line_frequency == 50) {
+          val = V4L2_CID_POWER_LINE_FREQUENCY_50HZ;
+        } else if (power_line_frequency == 60) {
+          val = V4L2_CID_POWER_LINE_FREQUENCY_60HZ;
+        } else {
+          printf("power_line_frequency=%d not supported. Using auto.\n", power_line_frequency);
+          val = V4L2_CID_POWER_LINE_FREQUENCY_AUTO;
         }
+        cam->set_v4l2_control(V4L2_CID_POWER_LINE_FREQUENCY, val, "power_line_frequency");
 
         // increment "/dev/videoN". 
         // This implementation constrains device name to video0 - video9
         // if multiple cameras are used, and their names must be sequential
         device[10]++;   
       }
+
       // TODO:
       // - add params for
       //   contrast
@@ -211,7 +212,6 @@ Camera::Camera(ros::NodeHandle _comm_nh, ros::NodeHandle _param_nh) :
             }
           }
         }
-        first = false;
 
         /* Read in every frame the camera generates, but only send each
          * (skip_frames + 1)th frame. It's set up this way just because
@@ -239,15 +239,16 @@ Camera::Camera(ros::NodeHandle _comm_nh, ros::NodeHandle _param_nh) :
                // optimize the common case, & also keep it working how it used to for one camera
                memcpy(&image->data[0], img_frame[0], width*height * 3);
              } else {
+               int image_x_offset;    // right cam offset in composite image
+               int image_xy_offset;   // how far in and down this camera's row is offset
                // aggregate multiple cameras by placing each one's row in the proper place
                // in the aggregate's row, that is, rows in camera-order
                for (int cam_num=0; cam_num<num_cameras; cam_num++) {
-                 int image_x_offset = cam_num * width * 3;    // how far right this camera is offset
-                 int image_xy_offset;   // how far in and down this camera's row is offset
+                 image_x_offset = cam_num * width * 3;    // right cam offset
                  for (int row_num=0; row_num<height; row_num++) {
-                   image_xy_offset = row_num * image->step + image_x_offset;
-                   memcpy(&image->data[0] + image_xy_offset, 
-                            img_frame[cam_num] + row_num * 3, 
+                   image_xy_offset = row_num * (image->step) + image_x_offset;
+                   memcpy(&(image->data[image_xy_offset]), 
+                            img_frame[cam_num] + row_num * width * 3, 
                             width * 3);
                  }
                }
@@ -279,6 +280,7 @@ Camera::Camera(ros::NodeHandle _comm_nh, ros::NodeHandle _param_nh) :
           }
 
           frames_to_skip = skip_frames;
+          first = false;
         } else {
           frames_to_skip--;
         }
