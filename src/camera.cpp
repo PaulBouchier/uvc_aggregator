@@ -73,63 +73,61 @@ Camera::Camera(ros::NodeHandle _comm_nh, ros::NodeHandle _param_nh) :
       
       uvc_cam::Cam *cam;
 
-      ROS_INFO_STREAM("Aggregating " << num_cameras << " cameras");
-      for(int i=0; i<num_cameras; i++) {
+      if(num_cameras > 1) {
+        ROS_INFO_STREAM("Aggregating " << num_cameras << " cameras");
+      }
+
+      for(int i=0; i<num_cameras; i++, device[10]++) {
         ROS_INFO_STREAM("Initializing camera: " << device);
         cam = camera_array[i] = new uvc_cam::Cam(device.c_str(), mode, width, height, fps);
         cam->set_motion_thresholds(100, -1);
-      }
 
-      bool auto_focus;
-      if (pnode.getParam("auto_focus", auto_focus)) {
-        cam->set_v4l2_control(V4L2_CID_FOCUS_AUTO, auto_focus, "auto_focus");
-      }
-
-      int focus_absolute;
-      if (pnode.getParam("focus_absolute", focus_absolute)) {
-        cam->set_v4l2_control(V4L2_CID_FOCUS_ABSOLUTE, focus_absolute, "focus_absolute");
-      }
-
-      bool auto_exposure;
-      if (pnode.getParam("auto_exposure", auto_exposure)) {
-        int val;
-        if (auto_exposure) {
-          val = V4L2_EXPOSURE_AUTO;
-        } else {
-          val = V4L2_EXPOSURE_MANUAL;
+        bool auto_focus;
+        if (pnode.getParam("auto_focus", auto_focus)) {
+          cam->set_v4l2_control(V4L2_CID_FOCUS_AUTO, auto_focus, "auto_focus");
         }
-        cam->set_v4l2_control(V4L2_CID_EXPOSURE_AUTO, val, "auto_exposure");
-      }
 
-      int exposure_absolute;
-      if (pnode.getParam("exposure_absolute", exposure_absolute)) {
-        cam->set_v4l2_control(V4L2_CID_EXPOSURE_ABSOLUTE, exposure_absolute, "exposure_absolute");
-      }
-
-      int brightness;
-      if (pnode.getParam("brightness", brightness)) {
-        cam->set_v4l2_control(V4L2_CID_BRIGHTNESS, brightness, "brightness");
-      }
-
-      int power_line_frequency;
-      if (pnode.getParam("power_line_frequency", power_line_frequency)) {
-        int val;
-        if (power_line_frequency == 0) {
-          val = V4L2_CID_POWER_LINE_FREQUENCY_DISABLED;
-        } else if (power_line_frequency == 50) {
-          val = V4L2_CID_POWER_LINE_FREQUENCY_50HZ;
-        } else if (power_line_frequency == 60) {
-          val = V4L2_CID_POWER_LINE_FREQUENCY_60HZ;
-        } else {
-          printf("power_line_frequency=%d not supported. Using auto.\n", power_line_frequency);
-          val = V4L2_CID_POWER_LINE_FREQUENCY_AUTO;
+        int focus_absolute;
+        if (pnode.getParam("focus_absolute", focus_absolute)) {
+          cam->set_v4l2_control(V4L2_CID_FOCUS_ABSOLUTE, focus_absolute, "focus_absolute");
         }
-        cam->set_v4l2_control(V4L2_CID_POWER_LINE_FREQUENCY, val, "power_line_frequency");
 
-        // increment "/dev/videoN". 
-        // This implementation constrains device name to video0 - video9
-        // if multiple cameras are used, and their names must be sequential
-        device[10]++;   
+        bool auto_exposure;
+        if (pnode.getParam("auto_exposure", auto_exposure)) {
+          int val;
+          if (auto_exposure) {
+            val = V4L2_EXPOSURE_AUTO;
+          } else {
+            val = V4L2_EXPOSURE_MANUAL;
+          }
+          cam->set_v4l2_control(V4L2_CID_EXPOSURE_AUTO, val, "auto_exposure");
+        }
+
+        int exposure_absolute;
+        if (pnode.getParam("exposure_absolute", exposure_absolute)) {
+          cam->set_v4l2_control(V4L2_CID_EXPOSURE_ABSOLUTE, exposure_absolute, "exposure_absolute");
+        }
+
+        int brightness;
+        if (pnode.getParam("brightness", brightness)) {
+          cam->set_v4l2_control(V4L2_CID_BRIGHTNESS, brightness, "brightness");
+        }
+
+        int power_line_frequency;
+        if (pnode.getParam("power_line_frequency", power_line_frequency)) {
+          int val;
+          if (power_line_frequency == 0) {
+            val = V4L2_CID_POWER_LINE_FREQUENCY_DISABLED;
+          } else if (power_line_frequency == 50) {
+            val = V4L2_CID_POWER_LINE_FREQUENCY_50HZ;
+          } else if (power_line_frequency == 60) {
+            val = V4L2_CID_POWER_LINE_FREQUENCY_60HZ;
+          } else {
+            printf("power_line_frequency=%d not supported. Using auto.\n", power_line_frequency);
+            val = V4L2_CID_POWER_LINE_FREQUENCY_AUTO;
+          }
+          cam->set_v4l2_control(V4L2_CID_POWER_LINE_FREQUENCY, val, "power_line_frequency");
+        }
       }
 
       // TODO:
