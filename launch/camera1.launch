@@ -1,0 +1,14 @@
+<launch>
+  <arg name="device" default="/dev/video1" />
+
+  <node pkg="uvc_aggregator" type="uvc_aggregator_node" name="uvc_aggregator1" output="screen">
+    <remap from="image_raw" to="camera/rgb/image_color1" />
+    <remap from="camera_info" to="camera/rgb/camera_info1" />
+    <param name="device" value="$(arg device)" />
+    <param name="width" type="int" value="320" />
+    <param name="height" type="int" value="240" />
+    <param name="fps" type="int" value="15" />
+    <param name="frame" type="string" value="camera_link" />
+    <!-- other supported params: auto_exposure, exposure_absolute, brightness, power_line_frequency -->
+  </node>
+</launch>
